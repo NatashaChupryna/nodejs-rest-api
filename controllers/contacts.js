@@ -24,8 +24,11 @@ const addContact = async (req, res, next) => {
 };
 
 const removeContact = async (req, res, next) => {
-  const { id } = req.params.contactId;
-  const result = await Contact.findByIdAndDelete(id);
+  const { _id: owner } = req.user;
+  const result = await Contact.findOneAndDelete({
+    _id: req.params.contactId,
+    owner,
+  });
   checkId(result);
   res.json({ message: "Contact deleted" });
 };
