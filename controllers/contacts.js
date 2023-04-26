@@ -11,8 +11,8 @@ const getAllContacts = async (req, res, next) => {
 };
 
 const getById = async (req, res, next) => {
-  const { id } = req.params.contactId;
-  const result = await Contact.findById(id);
+  const { _id: owner } = req.user;
+  const result = await Contact.findOne({ _id: req.params.contactId, owner });
   checkId(result);
   res.json(result);
 };
@@ -25,18 +25,20 @@ const addContact = async (req, res, next) => {
 
 const removeContact = async (req, res, next) => {
   const { id } = req.params.contactId;
-  const result = await Contact.findByIdAndRemove(id);
+  const result = await Contact.findByIdAndDelete(id);
   checkId(result);
   res.json({ message: "Contact deleted" });
 };
 
 const updateContact = async (req, res, next) => {
-  const result = await Contact.findByIdAndUpdate(
-    req.params.contactId,
+  const { _id: owner } = req.user;
+  const result = await Contact.findOneAndUpdate(
+    { _id: req.params.contactId, owner },
     req.body,
     { new: true }
   );
   checkId(result);
+
   res.json({
     status: "success",
     code: 200,
@@ -51,12 +53,11 @@ const updateStatusContact = async (req, res, next) => {
       message: "missing field favorite",
     });
   }
-  const result = await Contact.findByIdAndUpdate(
-    req.params.contactId,
+  const { _id: owner } = req.user;
+  const result = await Contact.findOneAndUpdate(
+    { _id: req.params.contactId, owner },
     req.body,
-    {
-      new: true,
-    }
+    { new: true }
   );
 
   if (!result) {

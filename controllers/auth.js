@@ -4,6 +4,8 @@ const { User } = require("../models/user");
 const jwt = require("jsonwebtoken");
 require("dotenv").config();
 
+const { SECRET_KEY } = process.env;
+
 const register = async (req, res) => {
   const { email, password } = req.body;
   const existedUser = await User.findOne({ email });
@@ -32,22 +34,23 @@ const login = async (req, res) => {
   if (!user) {
     throw HttpError(401, "Email or password is wrong");
   }
-  const passwordCompare = await bcrypt.compare(password, user.password); // повернення хешованого паролю
+
+  const passwordCompare = await bcrypt.compare(password, user.password);
   if (!passwordCompare) {
     throw HttpError(401, "Email or password is wrong");
   }
 
-  const { SECRET_KEY } = process.env;
   const payload = {
     id: user._id,
   };
+
   const token = jwt.sign(payload, SECRET_KEY, { expiresIn: "23h" });
   await User.findByIdAndUpdate(user._id, { token });
-  res.status(200).json({
+
+  res.json({
     token,
-    user: {
-      email: user.email,
-    },
+    email: user.email,
+    subscription: user.subscription,
   });
 };
 
