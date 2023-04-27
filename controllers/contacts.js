@@ -1,38 +1,47 @@
 const { controllerWrapper, checkId, HttpError } = require("../helpers");
 
-const { Contact } = require("../models");
+const { Contact } = require("../models/contact");
 
-const listContacts = async (req, res, next) => {
-  const result = await Contact.find();
+const getAllContacts = async (req, res, next) => {
+  const { _id: owner } = req.user;
+  const { page = 1, limit = 10 } = req.query;
+  const skip = (page - 1) * limit;
+  const result = await Contact.find(owner, { skip, limit });
   res.json(result);
 };
 
 const getById = async (req, res, next) => {
-  const { id } = req.params.contactId;
-  const result = await Contact.findById(id);
+  const { _id: owner } = req.user;
+  const result = await Contact.findOne({ _id: req.params.contactId, owner });
   checkId(result);
   res.json(result);
 };
 
 const addContact = async (req, res, next) => {
-  const result = await Contact.create(req.body);
+  const { _id: owner } = req.user;
+  const result = await Contact.create({ ...req.body, owner });
   res.status(201).json(result);
 };
 
 const removeContact = async (req, res, next) => {
-  const { id } = req.params.contactId;
-  const result = await Contact.findByIdAndRemove(id);
+  const { _id: owner } = req.user;
+  const result = await Contact.findOneAndDelete({
+    _id: req.params.contactId,
+    owner,
+  });
   checkId(result);
   res.json({ message: "Contact deleted" });
 };
 
 const updateContact = async (req, res, next) => {
-  const result = await Contact.findByIdAndUpdate(
-    req.params.contactId,
+  const { _id: owner } = req.user;
+  const result = await Contact.findOneAndUpdate(
+    { _id: req.params.contactId, owner },
     req.body,
     { new: true }
   );
   checkId(result);
+
   res.json({
     status: "success",
     code: 200,
@@ -47,12 +56,11 @@ const updateStatusContact = async (req, res, next) => {
       message: "missing field favorite",
     });
   }
-  const result = await Contact.findByIdAndUpdate(
-    req.params.contactId,
+  const { _id: owner } = req.user;
+  const result = await Contact.findOneAndUpdate(
+    { _id: req.params.contactId, owner },
     req.body,
-    {
-      new: true,
-    }
+    { new: true }
   );
 
   if (!result) {
@@ -63,7 +71,7 @@ const updateStatusContact = async (req, res, next) => {
 };
 
 module.exports = {
-  listContacts: controllerWrapper(listContacts),
+  getAllContacts: controllerWrapper(getAllContacts),
   getById: controllerWrapper(getById),
   addContact: controllerWrapper(addContact),
   removeContact: controllerWrapper(removeContact),
