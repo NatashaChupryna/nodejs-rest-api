@@ -3,8 +3,14 @@ const { controllerWrapper, HttpError } = require("../helpers");
 const { User } = require("../models/user");
 const jwt = require("jsonwebtoken");
 require("dotenv").config();
+const gravatar = require("gravatar");
+const path = require("path");
+const fs = require("fs/promises");
+const Jimp = require("jimp");
 
 const { SECRET_KEY } = process.env;
+
+const avatarsDir = path.join(__dirname, "../", "public", "avatars");
 
 const register = async (req, res) => {
   const { email, password } = req.body;
@@ -14,8 +20,13 @@ const register = async (req, res) => {
   }
 
   const hashedPassword = await bcrypt.hash(password, 10);
-
-  const newUser = await User.create({ ...req.body, password: hashedPassword });
+  const avatar = gravatar.url(email);
+  console.log(avatar);
+  const newUser = await User.create({
+    ...req.body,
+    password: hashedPassword,
+    avatar,
+  });
   if (!newUser) {
     throw HttpError(409, "error");
   }
@@ -71,9 +82,24 @@ const logout = async (req, res) => {
   res.status(204).end();
 };
 
+const updateAvatar = async (req, res) => {
+  const { _id } = req.user;
+  const { path: tempUploud, originalname } = req.file;
+  const image = await Jimp.read(tempUploud);
+  image.resize(250, 250);
+  const fileName = `${_id}_${originalname}`;
+  const resultUploud = path.join(avatarsDir, fileName);
+  await fs.rename(tempUploud, resultUploud);
+  const avatarURL = path.join("avatars", fileName);
+  await User.findByIdAndUpdate(_id, { avatarURL });
+
+  res.json({ avatarURL });
+};
+
 module.exports = {
   register: controllerWrapper(register),
   login: controllerWrapper(login),
   getCurrentUser: controllerWrapper(getCurrentUser),
   logout: controllerWrapper(logout),
+  updateAvatar: controllerWrapper(updateAvatar),
 };
